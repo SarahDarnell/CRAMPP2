@@ -73,6 +73,9 @@ numeric_cols <- c("record_id", "leg", "nfr_found_yn", "nfr_thresh",
 nfr_cpm_groups <- nfr_cpm_groups %>%
   mutate(across(all_of(numeric_cols), as.numeric))
 
+#saving file
+write.csv(nfr_cpm_groups, "Edited data files/nfr_cpm_groups.csv")
+
 #removing those who didn't find Pain30
 nfr_cpm_groups <- nfr_cpm_groups %>%
   filter(pain30_found_yn == 1)
@@ -279,16 +282,24 @@ warm_vs_cold <- ggplot(combined_long, aes(x = measure_num, y = mean_value, group
 ## CPM plots ##
 ################
 
-#compute avg of warm and cold stims
+#compute avg of warm and cold stims, only for those with at least 6 ratings
 nfr_cpm_groups <- nfr_cpm_groups %>%
   rowwise() %>%
-  mutate(
-    warm_avg = mean(c_across(warm_1:warm_9))
-  ) %>%
-  mutate(
-    cold_avg = mean(c_across(cold_1:cold_9))
-  ) %>%
+  mutate(warm_count = sum(!is.na(c_across(warm_1:warm_9)))) %>%
+  mutate(warm_avg = case_when(
+    warm_count > 5 ~ mean(c_across(warm_1:warm_9), na.rm = TRUE)
+  )) %>%
+  mutate(cold_count = sum(!is.na(c_across(cold_1:cold_9)))) %>%
+  mutate(cold_avg = case_when(
+    cold_count > 5 ~ mean(c_across(cold_1:cold_9), na.rm = TRUE) 
+  )) %>%
   ungroup()
+
+nfr_cpm_groups <- nfr_cpm_groups %>%
+  filter(
+    !is.na(warm_avg),
+    !is.na(cold_avg)
+  )
 
 long_df <- nfr_cpm_groups %>%
   select(record_id, group_arm2, warm_avg, cold_avg) %>%
@@ -297,21 +308,33 @@ long_df <- nfr_cpm_groups %>%
     names_to = "stim",
     values_to = "pain_rating"
   ) %>% 
-  mutate(stim = factor(stim, levels = c("warm_avg", "cold_avg")))
+  mutate(stim = factor(stim, levels = c("warm_avg", "cold_avg"))) 
+
+n_long_df <- long_df %>%
+  distinct(record_id, group_arm2) %>%
+  count(group_arm2, name = "n")
 
 cpm <- ggplot(long_df, aes(x = stim, y = pain_rating, group = record_id)) +
-  # individual paired lines
   geom_line(alpha = 0.3, color = "darkgray") +
   geom_point(size = 2, alpha = 0.5, color = "darkgray") +
-  # summary boxplot per stim
   geom_boxplot(
     aes(group = stim),
     width = 0.4,
     alpha = 0.6,
     fill = "skyblue",
-    outlier.shape = NA  # hide outliers since individual points are shown
+    outlier.shape = NA  
   ) +
-  scale_y_continuous(limits = c(0, 40), breaks = seq(0, 40, 5)) +
+  geom_text(
+    data = n_long_df,
+    aes(
+      x = 1.5,
+      y = 2,
+      label = paste0("n = ", n)
+    ),
+    inherit.aes = FALSE,
+    size = 3
+  ) +
+  scale_y_continuous(limits = c(0, 70), breaks = seq(0, 70, 10)) +
   labs(
     title = "Avg Warm and Cold Ratings",
     x = "",
