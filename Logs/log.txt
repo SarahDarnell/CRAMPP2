@@ -11,6 +11,10 @@ Residuals   128   9199   71.87
 data:  cpm_change by group_arm2
 Kruskal-Wallis chi-squared = 1.5333, df = 2, p-value = 0.4646
 
+# A tibble: 1 × 3
+  Item       C                    `DYS+DYSB`           
+  <chr>      <chr>                <chr>                
+1 cpm_change 3.0 [-3.0-6.0], n=23 4.5 [0.0-10.0], n=108
                  Df Sum Sq Mean Sq F value Pr(>F)
 combined_groups   1     69   69.02   0.963  0.328
 Residuals       129   9243   71.65               

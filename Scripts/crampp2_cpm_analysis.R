@@ -418,7 +418,7 @@ summary(anova_dys_dysb)
 #kruskal wallis comparing cpm change dys vs dysb
 kruskal.test(cpm_change ~ group_arm2, data = nfr_cpm_groups)
 
-#one-way anova comparing cpm change hc vs dys/b
+#table with cpm change medians stratified combined groups
 nfr_cpm_groups <- nfr_cpm_groups %>%
   mutate(combined_groups = case_when(
     group_arm2 == "DYS" ~ "DYS+DYSB", 
@@ -426,6 +426,19 @@ nfr_cpm_groups <- nfr_cpm_groups %>%
     group_arm2 == "C" ~ "C"
   ))
 
+cpm_change_medians_combined <- nfr_cpm_groups %>%
+  select(cpm_change, combined_groups) %>%
+  pivot_longer(cols = -combined_groups, names_to = "Item", values_to = "Value") %>% 
+  group_by(combined_groups, Item) %>%
+  dplyr::summarize(`Median [IQR]` = sprintf("%.1f [%.1f-%.1f], n=%d", 
+                                            median(Value, na.rm = TRUE), 
+                                            quantile(Value, 0.25, na.rm = TRUE),
+                                            quantile(Value, 0.75, na.rm = TRUE),
+                                            sum(!is.na(Value))),
+                   .groups = "drop") %>%
+  pivot_wider(names_from = combined_groups, values_from = `Median [IQR]`) 
+
+#one-way anova comparing cpm change hc vs dys/b
 anova_hc_dys_b <- aov(cpm_change ~ combined_groups, data = nfr_cpm_groups)
 summary(anova_hc_dys_b)
 
