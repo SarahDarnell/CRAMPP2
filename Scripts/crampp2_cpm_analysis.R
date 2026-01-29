@@ -359,14 +359,108 @@ for (i in seq_along(plots)) {
 }
 
 
+###########
+## Stats ##
+###########
+
+#NOTE: Ensure using the version that has cold_avg and warm_avg calculated 
+#so we have proper filters in place
+
+#uncomment to save output
+sink("Logs/log.txt")
+
+#calculate median warm and cold ratings for each participant
+nfr_cpm_groups <- nfr_cpm_groups %>%
+  rowwise() %>%
+  mutate(warm_median = median(c_across(warm_1:warm_9), na.rm = TRUE)) %>%
+  mutate(cold_median = median(c_across(cold_1:cold_9), na.rm = TRUE)) %>%
+#calculate cpm change
+  mutate(cpm_change = warm_median - cold_median) %>%
+  ungroup()
+
+#table with cpm change medians stratified by group
+cpm_change_medians <- nfr_cpm_groups %>%
+  select(cpm_change, group_arm2) %>%
+  pivot_longer(cols = -group_arm2, names_to = "Item", values_to = "Value") %>% 
+  group_by(group_arm2, Item) %>%
+  dplyr::summarize(`Median [IQR]` = sprintf("%.1f [%.1f-%.1f], n=%d", 
+                                            median(Value, na.rm = TRUE), 
+                                            quantile(Value, 0.25, na.rm = TRUE),
+                                            quantile(Value, 0.75, na.rm = TRUE),
+                                            sum(!is.na(Value))),
+                   .groups = "drop") %>%
+  pivot_wider(names_from = group_arm2, values_from = `Median [IQR]`) 
 
 
+#plot of cpm change by group
+cpm_change_plot <- ggplot(nfr_cpm_groups, aes(x = group_arm2, y = cpm_change, group = group_arm2)) +
+  geom_line(alpha = 0.3, color = "darkgray") +
+  geom_point(size = 2, alpha = 0.5, color = "darkgray") +
+  geom_boxplot(
+    aes(group = group_arm2),
+    width = 0.4,
+    alpha = 0.6,
+    fill = "skyblue",
+    outlier.shape = NA  
+  )+
+  labs(
+    title = "CPM change across groups",
+    x = "",
+    y = "cpm_change"
+  ) +
+  theme_classic() +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+#one-way anova comparing cpm change dys vs dysb
+anova_dys_dysb <- aov(cpm_change ~ group_arm2, data = nfr_cpm_groups)
+summary(anova_dys_dysb)
+
+#kruskal wallis comparing cpm change dys vs dysb
+kruskal.test(cpm_change ~ group_arm2, data = nfr_cpm_groups)
+
+#one-way anova comparing cpm change hc vs dys/b
+nfr_cpm_groups <- nfr_cpm_groups %>%
+  mutate(combined_groups = case_when(
+    group_arm2 == "DYS" ~ "DYS+DYSB", 
+    group_arm2 == "DYSB" ~ "DYS+DYSB",
+    group_arm2 == "C" ~ "C"
+  ))
+
+anova_hc_dys_b <- aov(cpm_change ~ combined_groups, data = nfr_cpm_groups)
+summary(anova_hc_dys_b)
+
+#kruskal wallis comparing cpm change hc vs dys/b
+kruskal.test(cpm_change ~ combined_groups, data = nfr_cpm_groups)
+
+#one way anova comparing pain30 dys vs dysb
+anova_dys_dysb_pain30 <- aov(pain30_thresh ~ group_arm2, data = nfr_cpm_groups)
+summary(anova_dys_dysb_pain30)
+
+#kruskal wallis comparing pain30 dys vs dysb
+kruskal.test(pain30_thresh ~ group_arm2, data = nfr_cpm_groups)
+
+#one way anova comparing pain30 dys vs dysb
+anova_dys_dysb_nfr <- aov(nfr_thresh ~ group_arm2, data = nfr_cpm_groups)
+summary(anova_dys_dysb_nfr)
+
+#kruskal wallis comparing pain30 dys vs dysb
+kruskal.test(nfr_thresh ~ group_arm2, data = nfr_cpm_groups)
+
+#uncomment to stop logging
+sink()
 
 
+#saving plots
+plots <- c("cpm_change_plot")
 
 
-
-
+for (i in seq_along(plots)) {
+  ggsave(
+    filename = sprintf("Plots/%s.png", plots[i]),
+    plot = get(plots[i]),
+    width = 7, height = 5, dpi = 300
+  )
+}
 
 
 

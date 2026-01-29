@@ -1,0 +1,41 @@
+# A tibble: 1 × 4
+  Item       C                    DYS                  DYSB                
+  <chr>      <chr>                <chr>                <chr>               
+1 cpm_change 3.0 [-3.0-6.0], n=23 5.0 [0.0-10.0], n=75 3.0 [0.0-10.0], n=33
+             Df Sum Sq Mean Sq F value Pr(>F)
+group_arm2    2    113   56.58   0.787  0.457
+Residuals   128   9199   71.87               
+
+	Kruskal-Wallis rank sum test
+
+data:  cpm_change by group_arm2
+Kruskal-Wallis chi-squared = 1.5333, df = 2, p-value = 0.4646
+
+                 Df Sum Sq Mean Sq F value Pr(>F)
+combined_groups   1     69   69.02   0.963  0.328
+Residuals       129   9243   71.65               
+
+	Kruskal-Wallis rank sum test
+
+data:  cpm_change by combined_groups
+Kruskal-Wallis chi-squared = 1.3479, df = 1, p-value = 0.2456
+
+             Df Sum Sq Mean Sq F value Pr(>F)
+group_arm2    2    292  146.17   1.644  0.197
+Residuals   128  11380   88.91               
+
+	Kruskal-Wallis rank sum test
+
+data:  pain30_thresh by group_arm2
+Kruskal-Wallis chi-squared = 2.9475, df = 2, p-value = 0.2291
+
+            Df Sum Sq Mean Sq F value Pr(>F)
+group_arm2   2    105   52.35   0.725  0.487
+Residuals   93   6715   72.21               
+35 observations deleted due to missingness
+
+	Kruskal-Wallis rank sum test
+
+data:  nfr_thresh by group_arm2
+Kruskal-Wallis chi-squared = 0.99397, df = 2, p-value = 0.6084
+
