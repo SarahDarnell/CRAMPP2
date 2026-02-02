@@ -488,11 +488,12 @@ emg <- read_csv("Raw data files/OKSNAPIII_CPMratings_ANALYSIS.csv")
 
 #filter out incomplete annual trials, and nsaid trails
 emg <- emg %>%
+  filter(study == "crampp2") %>%
+  filter(visit_number == 0) %>%
   group_by(subid_arm2) %>%
   filter(n() == 2) %>%
-  ungroup() %>%
-  filter(study == "crampp2") %>%
-  filter(visit_number == 0)
+  ungroup() 
+  
 
 #merge group and record id
 #fixing group columns to be numeric
@@ -512,52 +513,42 @@ emg <- emg %>%
 
 #summary(emg$group_arm2)
 #C  DYS DYSB 
-#42  146   70 
+#52  182   74
+
 
 #calculate d_scores 
 emg <- emg %>%
   rowwise() %>%
-  mutate(d_score_1 = case_when(
-    EMGbase1 <= 5 ~ (NFR1 - EMGbase1)/((EMGbaseSD1 + NFRSD1)/2), 
-    EMGbase1 > 5 ~ 0 #coerced to 0 instead of NA so we can see missing data separately 
+  mutate(cpmNFRd1 = case_when(
+    EMGbase1 <= 10 ~ (NFR1 - EMGbase1)/((EMGbaseSD1 + NFRSD1)/2)
   )) %>%
-  mutate(d_score_2 = case_when(
-    EMGbase2 <= 5 ~ (NFR2 - EMGbase2)/((EMGbaseSD2 + NFRSD2)/2), 
-    EMGbase2 > 5 ~ 0
+  mutate(cpmNFRd2 = case_when(
+    EMGbase2 <= 10 ~ (NFR2 - EMGbase2)/((EMGbaseSD2 + NFRSD2)/2)
   )) %>%
-  mutate(d_score_3 = case_when(
-    EMGbase3 <= 5 ~ (NFR3 - EMGbase3)/((EMGbaseSD3 + NFRSD3)/2), 
-    EMGbase3 > 5 ~ 0
+  mutate(cpmNFRd3 = case_when(
+    EMGbase3 <= 10 ~ (NFR3 - EMGbase3)/((EMGbaseSD3 + NFRSD3)/2)
   )) %>%
-  mutate(d_score_4 = case_when(
-    EMGbase4 <= 5 ~ (NFR4 - EMGbase4)/((EMGbaseSD4 + NFRSD4)/2), 
-    EMGbase4 > 5 ~ 0
+  mutate(cpmNFRd4 = case_when(
+    EMGbase4 <= 10 ~ (NFR4 - EMGbase4)/((EMGbaseSD4 + NFRSD4)/2)
   )) %>%
-  mutate(d_score_5 = case_when(
-    EMGbase5 <= 5 ~ (NFR5 - EMGbase5)/((EMGbaseSD5 + NFRSD5)/2), 
-    EMGbase5 > 5 ~ 0
+  mutate(cpmNFRd5 = case_when(
+    EMGbase5 <= 10 ~ (NFR5 - EMGbase5)/((EMGbaseSD5 + NFRSD5)/2)
   )) %>%
-  mutate(d_score_6 = case_when(
-    EMGbase6 <= 5 ~ (NFR6 - EMGbase6)/((EMGbaseSD6 + NFRSD6)/2), 
-    EMGbase6 > 5 ~ 0
+  mutate(cpmNFRd6 = case_when(
+    EMGbase6 <= 10 ~ (NFR6 - EMGbase6)/((EMGbaseSD6 + NFRSD6)/2)
   )) %>%
-  mutate(d_score_7 = case_when(
-    EMGbase7 <= 5 ~ (NFR7 - EMGbase7)/((EMGbaseSD7 + NFRSD7)/2), 
-    EMGbase7 > 5 ~ 0
+  mutate(cpmNFRd7 = case_when(
+    EMGbase7 <= 10 ~ (NFR7 - EMGbase7)/((EMGbaseSD7 + NFRSD7)/2)
   )) %>%
-  mutate(d_score_8 = case_when(
-    EMGbase8 <= 5 ~ (NFR8 - EMGbase8)/((EMGbaseSD8 + NFRSD8)/2), 
-    EMGbase8 > 5 ~ 0
+  mutate(cpmNFRd8 = case_when(
+    EMGbase8 <= 10 ~ (NFR8 - EMGbase8)/((EMGbaseSD8 + NFRSD8)/2)
   )) %>%
-  mutate(d_score_9 = case_when(
-    EMGbase9 <= 5 ~ (NFR9 - EMGbase9)/((EMGbaseSD9 + NFRSD9)/2), 
-    EMGbase9 > 5 ~ 0
+  mutate(cpmNFRd9 = case_when(
+    EMGbase9 <= 10 ~ (NFR9 - EMGbase9)/((EMGbaseSD9 + NFRSD9)/2)
   ))
-
 
 #saving file
 write.csv(emg, "Edited data files/emg.csv")
-
 
 
 
