@@ -412,11 +412,14 @@ cpm_change_plot <- ggplot(nfr_cpm_groups, aes(x = group_arm2, y = cpm_change, gr
   theme(plot.title = element_text(hjust = 0.5)) 
 
 #one-way anova comparing cpm change dys vs dysb
-anova_dys_dysb <- aov(cpm_change ~ group_arm2, data = nfr_cpm_groups)
+nfr_cpm_groups_filtered <- nfr_cpm_groups %>%
+  filter(group_arm2 != "C")
+
+anova_dys_dysb <- aov(cpm_change ~ group_arm2, data = nfr_cpm_groups_filtered)
 summary(anova_dys_dysb)
 
 #kruskal wallis comparing cpm change dys vs dysb
-kruskal.test(cpm_change ~ group_arm2, data = nfr_cpm_groups)
+kruskal.test(cpm_change ~ group_arm2, data = nfr_cpm_groups_filtered)
 
 #table with cpm change medians stratified combined groups
 nfr_cpm_groups <- nfr_cpm_groups %>%
