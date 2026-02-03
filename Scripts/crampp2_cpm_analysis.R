@@ -622,14 +622,168 @@ nfr_cpm_groups <- nfr_cpm_groups %>%
 
 #merge with emg data
 emg_wide <- emg_wide %>%
-  left_join(nfr_cpm_groups %>% select(record_id, subid_arm2, cpmPainMn_Warm, 
-                                      cpmPainMn_Cold, CPMpain), by = "subid_arm2")
+  left_join(nfr_cpm_groups %>% select(record_id, subid_arm2, group_arm2, 
+                                      cpmPainMn_Warm, cpmPainMn_Cold, CPMpain, 
+                                      leg:cold_9), 
+            by = "subid_arm2")
   
+#make 0-1 variable for whether pain ratings meet our constraints
+emg_wide <- emg_wide %>%
+  rowwise %>%
+  mutate(warm_count = sum(!is.na(c_across(warm_1:warm_9)))) %>%
+  mutate(warm_meets = if_else(
+    warm_count > 5 & pain30_found_yn == 1, 1, 0)
+  ) %>%
+  mutate(cold_count = sum(!is.na(c_across(cold_1:cold_9)))) %>%
+  mutate(cold_meets = if_else(
+    cold_count > 5 & pain30_found_yn == 1, 1, 0)
+  ) %>%
+#calculate cpm change
+  mutate(cpm_change_mean = cpmPainMn_Warm - cpmPainMn_Cold) 
 
+#make group and phase factors
+emg <- emg %>%
+  mutate(phase = factor(phase, levels = c("Warm", "Cold")))
+
+#calculate group numbers
+emg_wide_group_ns <- emg_wide %>%
+  distinct(record_id, group_arm2) %>%
+  count(group_arm2, name = "n")
 
 #saving files
 write.csv(emg, "Edited data files/emg.csv")
 write.csv(emg_wide, "Edited data files/emg_wide.csv")
+
+#####################
+## Plots and stats ##
+#####################
+
+#plot of CPMnfr by group
+CPMnfr_plot <- ggplot(emg_wide, aes(x = group_arm2, y = CPMnfr, group = group_arm2)) +
+  geom_point(size = 2, alpha = 0.5, color = "darkgray") +
+  geom_boxplot(
+    aes(group = group_arm2),
+    fill = "skyblue"
+  )+
+  labs(
+    title = "CPMnfr across groups",
+    x = "",
+    y = "CPMnfr"
+  ) +
+  theme_classic() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_text(
+    data = emg_wide_group_ns,
+    aes(
+      x = group_arm2,
+      y = Inf,
+      label = paste0("n = ", n)
+    ),
+    vjust = 1
+    )
+
+#plot of warm emg vs cold emg
+
+#paired t test of NFR mag by group
+pvals <- emg %>%
+  group_by(group_arm2) %>%
+  summarise(
+    p = t.test(
+      cpmNFRdMn[phase == "Warm"],
+      cpmNFRdMn[phase == "Cold"],
+      paired = TRUE
+    )$p.value,
+    .groups = "drop"
+  )
+
+pvals <- pvals %>%
+  mutate(
+    x = 1.5,  # middle between Warm (1) and Cold (2) bars
+    y = 1.2  # slightly above tallest bar
+  )
+
+CPMnfr_mean_plot <- ggplot(
+  emg,
+  aes(
+    x = phase,
+    y = cpmNFRdMn,
+    fill = phase
+  )
+) +
+  stat_summary(
+    fun = mean,
+    geom = "bar",
+    width = 0.6
+  ) +
+  facet_wrap(~ group_arm2) +
+  labs(
+    x = "",
+    y = "NFR Magnitude (d)",
+    title = "CPM-NFR means by group"
+  ) +
+  theme_classic() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_text(
+    data = emg_wide_group_ns,
+    aes(
+      y = Inf,
+      label = paste0("n = ", n)
+    ),
+    x = 1,                # or any constant x value that looks good
+    inherit.aes = FALSE,
+    vjust = 1.25
+  ) +
+  geom_text(
+    data = pvals,
+    aes(
+      x = x,
+      y = y,
+      label = paste0("p = ", signif(p, 2))
+    ),
+    inherit.aes = FALSE
+  )
+
+#paired t tests of pain ratings by groups
+pvals_groups <- emg_wide %>%
+  group_by(group_arm2) %>%
+  filter(warm_meets == 1 & cold_meets == 1) %>% #only those who meet our constraints
+  summarise(
+    p = t.test(cpmPainMn_Warm, cpmPainMn_Cold, paired = TRUE)$p.value,
+    .groups = "drop"
+  )
+
+#paired t tests of pain ratings across all pts
+emg_clean <- emg_wide %>%
+  filter(warm_meets == 1 & cold_meets == 1) 
+
+t.test(emg_clean$cpmPainMn_Warm,
+       emg_clean$cpmPainMn_Cold,
+       paired = TRUE)$p.value
+
+
+#saving plots
+plots <- c("CPMnfr_plot", "CPMnfr_mean_plot")
+
+
+for (i in seq_along(plots)) {
+  ggsave(
+    filename = sprintf("Plots/%s.png", plots[i]),
+    plot = get(plots[i]),
+    width = 7, height = 5, dpi = 300
+  )
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
