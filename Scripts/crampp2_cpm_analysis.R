@@ -52,7 +52,7 @@ groups <- fromJSON(response_text, flatten = TRUE)
 
 #merge group information into nfr_cpm df
 nfr_cpm_groups <- nfr_cpm %>%
-  left_join(groups %>% select(record_id, group_arm2), by = "record_id")
+  left_join(groups %>% select(record_id, group_arm2, subid_arm2), by = "record_id")
 
 #make group a categorical and factor var
 nfr_cpm_groups <- nfr_cpm_groups %>%
@@ -69,13 +69,15 @@ numeric_cols <- c("record_id", "leg", "nfr_found_yn", "nfr_thresh",
                  "pain30_not_found", "cpm_thresh", "warm_temp", "warm_1", 
                  "warm_2", "warm_3", "warm_4", "warm_5", "warm_6", "warm_7", 
                  "warm_8", "warm_9", "cold_temp", "cold_1", "cold_2", "cold_3", 
-                 "cold_4", "cold_5", "cold_6", "cold_7", "cold_8", "cold_9")
+                 "cold_4", "cold_5", "cold_6", "cold_7", "cold_8", "cold_9", 
+                 "subid_arm2")
 
 nfr_cpm_groups <- nfr_cpm_groups %>%
   mutate(across(all_of(numeric_cols), as.numeric))
 
 #saving file
 write.csv(nfr_cpm_groups, "Edited data files/nfr_cpm_groups.csv")
+
 
 #removing those who didn't find Pain30
 nfr_cpm_groups <- nfr_cpm_groups %>%
@@ -359,6 +361,8 @@ for (i in seq_along(plots)) {
   )
 }
 
+#saving file
+write.csv(nfr_cpm_groups, "Edited data files/nfr_cpm_groups.csv")
 
 ###########
 ## Stats ##
@@ -547,9 +551,85 @@ emg <- emg %>%
     EMGbase9 <= 10 ~ (NFR9 - EMGbase9)/((EMGbaseSD9 + NFRSD9)/2)
   ))
 
-#saving file
-write.csv(emg, "Edited data files/emg.csv")
+#converting negative NFRs to 0
+emg <- emg %>%
+  mutate(cpmNFRd1 = case_when(
+    cpmNFRd1 < 0 ~ 0, 
+    TRUE ~ cpmNFRd1
+  )) %>%
+  mutate(cpmNFRd2 = case_when(
+    cpmNFRd2 < 0 ~ 0, 
+    TRUE ~ cpmNFRd2
+  )) %>%
+  mutate(cpmNFRd3 = case_when(
+    cpmNFRd3 < 0 ~ 0, 
+    TRUE ~ cpmNFRd3
+  )) %>%
+  mutate(cpmNFRd4 = case_when(
+    cpmNFRd4 < 0 ~ 0, 
+    TRUE ~ cpmNFRd4
+  )) %>%
+  mutate(cpmNFRd5 = case_when(
+    cpmNFRd5 < 0 ~ 0, 
+    TRUE ~ cpmNFRd5
+  )) %>%
+  mutate(cpmNFRd6 = case_when(
+    cpmNFRd6 < 0 ~ 0, 
+    TRUE ~ cpmNFRd6
+  )) %>%
+  mutate(cpmNFRd7 = case_when(
+    cpmNFRd7 < 0 ~ 0, 
+    TRUE ~ cpmNFRd7
+  )) %>%
+  mutate(cpmNFRd8 = case_when(
+    cpmNFRd8 < 0 ~ 0, 
+    TRUE ~ cpmNFRd8
+  )) %>%
+  mutate(cpmNFRd9 = case_when(
+    cpmNFRd9 < 0 ~ 0, 
+    TRUE ~ cpmNFRd9
+  )) 
 
+#calculate cpmNFR means
+emg <- emg %>%
+  rowwise() %>%
+  mutate(cpmNFRdMn = mean(c_across(cpmNFRd1:cpmNFRd9), na.rm = TRUE)) 
+
+#convert to wide form
+emg_wide <- emg %>%
+  select(-1) %>%
+  pivot_wider(
+  id_cols = c(subid_arm2, visit_number, study, task),
+  names_from = phase,
+  values_from = -c(subid_arm2, visit_number, study, task, phase),
+  names_sep = "_"
+)  
+
+#calculate CPMnfr
+emg_wide <- emg_wide %>%
+  mutate(CPMnfr = cpmNFRdMn_Cold - cpmNFRdMn_Warm)
+
+#pull in pain information, calculate CPMpain
+nfr_cpm_groups <- read_csv("Edited data files/nfr_cpm_groups.csv", 
+                           col_types = cols(...1 = col_skip()))
+
+nfr_cpm_groups <- nfr_cpm_groups %>%
+  rowwise() %>%
+  mutate(cpmPainMn_Warm = mean(c_across(warm_1:warm_9), na.rm = TRUE)) %>%
+  mutate(cpmPainMn_Cold = mean(c_across(cold_1:cold_9), na.rm = TRUE)) %>%
+  mutate(CPMpain = cpmPainMn_Cold - cpmPainMn_Warm) %>%
+  ungroup()
+
+#merge with emg data
+emg_wide <- emg_wide %>%
+  left_join(nfr_cpm_groups %>% select(record_id, subid_arm2, cpmPainMn_Warm, 
+                                      cpmPainMn_Cold, CPMpain), by = "subid_arm2")
+  
+
+
+#saving files
+write.csv(emg, "Edited data files/emg.csv")
+write.csv(emg_wide, "Edited data files/emg_wide.csv")
 
 
 
