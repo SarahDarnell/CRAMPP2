@@ -1,0 +1,64 @@
+## Median values CPMnfr
+  Item   C                     DYS                   DYSB                 
+  <chr>  <chr>                 <chr>                 <chr>                
+1 CPMnfr -0.1 [-0.4-0.1], n=17 -0.1 [-0.2-0.0], n=55 -0.0 [-0.1-0.2], n=26
+
+## cpm_nfr_all_groups
+
+            Df Sum Sq Mean Sq F value Pr(>F)
+group_arm2   2   0.66  0.3284   0.675  0.511
+Residuals   95  46.21  0.4864               
+56 observations deleted due to missingness
+
+	Kruskal-Wallis rank sum test
+
+data:  CPMnfr by group_arm2
+Kruskal-Wallis chi-squared = 2.3139, df = 2, p-value = 0.3144
+
+
+## cpm_nfr_dys_vs_dysb
+
+            Df Sum Sq Mean Sq F value Pr(>F)
+group_arm2   1   0.66  0.6553   1.176  0.281
+Residuals   79  44.01  0.5571               
+47 observations deleted due to missingness
+
+	Kruskal-Wallis rank sum test
+
+data:  CPMnfr by group_arm2
+Kruskal-Wallis chi-squared = 2.272, df = 1, p-value = 0.1317
+
+
+
+## Median values cold water pain
+  Item            C                      DYS                    DYSB                  
+  <chr>           <chr>                  <chr>                  <chr>                 
+1 water_pain_Cold 39.0 [25.2-45.8], n=26 31.0 [15.0-42.5], n=91 47.0 [24.0-59.0], n=37
+
+## cold_water_pain_all_groups
+
+             Df Sum Sq Mean Sq F value  Pr(>F)   
+group_arm2    2   4221  2110.3   4.802 0.00951 **
+Residuals   151  66351   439.4                   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+	Kruskal-Wallis rank sum test
+
+data:  water_pain_Cold by group_arm2
+Kruskal-Wallis chi-squared = 8.4003, df = 2, p-value = 0.01499
+
+
+## cold_water_pain_dys_vs_dysb
+
+             Df Sum Sq Mean Sq F value  Pr(>F)   
+group_arm2    1   4211    4211   8.755 0.00369 **
+Residuals   126  60603     481                   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+	Kruskal-Wallis rank sum test
+
+data:  water_pain_Cold by group_arm2
+Kruskal-Wallis chi-squared = 7.6917, df = 1, p-value = 0.005547
+

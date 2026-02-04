@@ -645,10 +645,31 @@ emg_wide <- emg_wide %>%
 emg <- emg %>%
   mutate(phase = factor(phase, levels = c("Warm", "Cold")))
 
-#calculate group numbers
-emg_wide_group_ns <- emg_wide %>%
-  distinct(record_id, group_arm2) %>%
-  count(group_arm2, name = "n")
+#import water pain ratings
+water_pain <- read_csv("Raw data files/OKSNAPIII_CSTaskRatings_ANALYSIS.csv")
+
+#filter out annuals and nsaid trails
+water_pain <- water_pain %>%
+  filter(study == "crampp2") %>%
+  filter(visit_number == 0)
+
+#merge water pain ratings into emg long data
+emg <- emg %>%
+  left_join(water_pain %>% select(subid_arm2, water_pain, phase), 
+            by = c("subid_arm2", "phase"))
+
+#pivot water pain ratings wide and merge into emg wide data
+water_pain_wide <- water_pain %>%
+  pivot_wider(
+    id_cols = c(subid_arm2),
+    names_from = phase,
+    values_from = water_pain,
+    names_glue = "water_pain_{phase}"
+  )  
+
+emg_wide <- emg_wide %>%
+  left_join(water_pain_wide %>% select(subid_arm2, water_pain_Cold, water_pain_Warm), 
+            by = "subid_arm2")
 
 #saving files
 write.csv(emg, "Edited data files/emg.csv")
@@ -659,6 +680,13 @@ write.csv(emg_wide, "Edited data files/emg_wide.csv")
 #####################
 
 #plot of CPMnfr by group
+
+#calculate group numbers
+CPMnfr_group_ns <- emg_wide %>%
+  filter(!is.na(CPMnfr)) %>%
+  distinct(record_id, group_arm2) %>%
+  count(group_arm2, name = "n")
+
 CPMnfr_plot <- ggplot(emg_wide, aes(x = group_arm2, y = CPMnfr, group = group_arm2)) +
   geom_point(size = 2, alpha = 0.5, color = "darkgray") +
   geom_boxplot(
@@ -724,7 +752,7 @@ CPMnfr_mean_plot <- ggplot(
   theme_classic() +
   theme(plot.title = element_text(hjust = 0.5)) +
   geom_text(
-    data = emg_wide_group_ns,
+    data = CPMnfr_group_ns,
     aes(
       y = Inf,
       label = paste0("n = ", n)
@@ -773,17 +801,118 @@ for (i in seq_along(plots)) {
   )
 }
 
+#uncomment to save output
+sink("Logs/log_CPMnfr_coldpain.txt")
+
+#calculate group differences for CPMnfr
+CPMnfr_medians <- emg_wide %>%
+  select(CPMnfr, group_arm2) %>%
+  pivot_longer(cols = -group_arm2, names_to = "Item", values_to = "Value") %>% 
+  group_by(group_arm2, Item) %>%
+  dplyr::summarize(`Median [IQR]` = sprintf("%.1f [%.1f-%.1f], n=%d", 
+                                            median(Value, na.rm = TRUE), 
+                                            quantile(Value, 0.25, na.rm = TRUE),
+                                            quantile(Value, 0.75, na.rm = TRUE),
+                                            sum(!is.na(Value))),
+                   .groups = "drop") %>%
+  pivot_wider(names_from = group_arm2, values_from = `Median [IQR]`) 
+
+#one-way anova comparing CPMnfr across all groups
+anova_CPMnfr_all <- aov(CPMnfr ~ group_arm2, data = emg_wide)
+summary(anova_CPMnfr_all)
+
+#kruskal wallis comparing CPMnfr change across all groups
+kruskal.test(CPMnfr ~ group_arm2, data = emg_wide)
+
+#one-way anova comparing CPMnfr across DYS v DYSB
+emg_wide_filtered <- emg_wide %>%
+  filter(group_arm2 != "C")
+
+anova_CPMnfr_dys_b <- aov(CPMnfr ~ group_arm2, data = emg_wide_filtered)
+summary(anova_CPMnfr_dys_b)
+
+#kruskal wallis comparing CPMnfr DYS v DYSB
+kruskal.test(CPMnfr ~ group_arm2, data = emg_wide_filtered)
+ 
+
+#calculate group differences for water pain COLD
+cold_pain_medians <- emg_wide %>%
+  select(water_pain_Cold, group_arm2) %>%
+  pivot_longer(cols = -group_arm2, names_to = "Item", values_to = "Value") %>% 
+  group_by(group_arm2, Item) %>%
+  dplyr::summarize(`Median [IQR]` = sprintf("%.1f [%.1f-%.1f], n=%d", 
+                                            median(Value, na.rm = TRUE), 
+                                            quantile(Value, 0.25, na.rm = TRUE),
+                                            quantile(Value, 0.75, na.rm = TRUE),
+                                            sum(!is.na(Value))),
+                   .groups = "drop") %>%
+  pivot_wider(names_from = group_arm2, values_from = `Median [IQR]`) 
+
+#one-way anova comparing water pain COLD across all groups
+anova_cold_pain_all <- aov(water_pain_Cold ~ group_arm2, data = emg_wide)
+summary(anova_cold_pain_all)
+
+#kruskal wallis comparing water pain COLD change across all groups
+kruskal.test(water_pain_Cold ~ group_arm2, data = emg_wide)
+
+#one-way anova comparing water pain COLD across DYS v DYSB
+emg_wide_filtered <- emg_wide %>%
+  filter(group_arm2 != "C")
+
+anova_cold_pain_dys_b <- aov(water_pain_Cold ~ group_arm2, data = emg_wide_filtered)
+summary(anova_cold_pain_dys_b)
+
+#kruskal wallis comparing water pain COLD DYS v DYSB
+kruskal.test(water_pain_Cold ~ group_arm2, data = emg_wide_filtered)
+
+#uncomment to stop logging
+sink()
 
 
+#raincloud plot of cold water pain
+raincloud_cold_water_pain <- ggplot(emg_wide, aes(x = group_arm2, y = water_pain_Cold, fill = group_arm2)) +
+  stat_halfeye(
+    adjust = 1,
+    width = 0.6,
+    justification = -0.3,
+    point_colour = NA
+  ) +
+  geom_boxplot(
+    width = 0.15,
+    outlier.shape = NA,
+    alpha = 0.4
+  ) +
+  geom_jitter(
+    width = 0.08,
+    alpha = 0.5,
+    size = 1
+  ) +
+  stat_summary(
+    fun.data = function(y) {
+      data.frame(y = Inf, label = paste0("n = ", sum(!is.na(y))))
+    },
+    geom = "text",
+    hjust = 1
+  )  +
+  coord_cartesian(clip = "off") +
+  theme_classic() +
+  labs(
+    title = "Cold Water Pain",   
+    x = "",         
+    y = "0-100 (VAS)") +
+  theme(
+    plot.title = element_text(hjust = 0.5)
+  )
 
-
-
-
-
-
-
-
-
+#saving plot
+ggsave(
+  filename = "raincloud_cold_water_pain.png",
+  plot = raincloud_cold_water_pain,
+  path = "Plots/",
+  width = 7,
+  height = 5,
+  dpi = 300
+)
 
 
 
