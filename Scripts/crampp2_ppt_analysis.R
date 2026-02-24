@@ -49,7 +49,7 @@ groups <- groups %>%
 #merge group info into PPT df
 ppt_wide <- left_join(
   ppt_wide,
-  groups %>% select(subid_arm2, group_arm2),
+  groups %>% select(subid_arm2, group_arm2, record_id),
   by = "subid_arm2"
 )
   
@@ -63,9 +63,6 @@ ppt_wide <- ppt_wide %>%
     4 ~ "CP"
   ))
 
-#save file
-write.csv(ppt_wide, "Edited data files/ppt_wide.csv")
-
   
 #calculate mean of shoulder and knee strain trials per pt
 ppt_wide <- ppt_wide %>%
@@ -73,6 +70,37 @@ ppt_wide <- ppt_wide %>%
   mutate(knee_avg = mean(c(strain_1, strain_3))) %>%
   mutate(shoulder_avg = mean(c(strain_2, strain_4))) %>%
   ungroup()
+
+#import bladder pain and mh23 info
+formData <- list("token"=token,
+                 content='report',
+                 format='json',
+                 report_id='4595',
+                 csvDelimiter='',
+                 rawOrLabel='raw',
+                 rawOrLabelHeaders='raw',
+                 exportCheckboxLabel='false',
+                 returnFormat='json'
+)
+response <- httr::POST(url, body = formData, encode = "form")
+response_text <- httr::content(response, as = "text")
+pain <- fromJSON(response_text, flatten = TRUE)
+
+#convert characters to numerics
+numeric_cols <- c("record_id", "vbt_fu_pain", "mh23")
+
+pain <- pain %>%
+  mutate(across(all_of(numeric_cols), as.numeric))
+
+#merge pain info into PPT df
+ppt_wide <- left_join(
+  ppt_wide,
+  pain %>% select(record_id, vbt_fu_pain, mh23),
+  by = "record_id"
+)
+
+#save file
+write.csv(ppt_wide, "Edited data files/ppt_wide.csv")
  
 #table with ppt strain avgs stratified by group
 ppt_strain_medians <- ppt_wide %>%
@@ -105,15 +133,27 @@ kruskal.test(knee_avg ~ group_arm2, data = ppt_wide_filtered)
   
 kruskal.test(shoulder_avg ~ group_arm2, data = ppt_wide_filtered)  
 
+#corr coefs for fu_pain and knee/shoulder avg strain
+#spearman, vbt pain and knee
+cor(ppt_wide$vbt_fu_pain, ppt_wide$knee_avg, method = "spearman", use = "complete.obs")
+#spearman, vbt pain and shoulder
+cor(ppt_wide$vbt_fu_pain, ppt_wide$shoulder_avg, method = "spearman", use = "complete.obs")
+#pearson, vbt pain and knee
+cor(ppt_wide$vbt_fu_pain, ppt_wide$knee_avg, method = "pearson", use = "complete.obs")
+#pearson, vbt pain and shoulder
+cor(ppt_wide$vbt_fu_pain, ppt_wide$shoulder_avg, method = "pearson", use = "complete.obs")
+
+#corr coefs for mh23 and knee/shoulder avg strain
+#spearman, mh23 and knee
+cor(ppt_wide$mh23, ppt_wide$knee_avg, method = "spearman", use = "complete.obs")
+#spearman, mh23 and shoulder
+cor(ppt_wide$mh23, ppt_wide$shoulder_avg, method = "spearman", use = "complete.obs")
+#pearson, mh23 and knee
+cor(ppt_wide$mh23, ppt_wide$knee_avg, method = "pearson", use = "complete.obs")
+#pearson, mh23 and shoulder
+cor(ppt_wide$mh23, ppt_wide$shoulder_avg, method = "pearson", use = "complete.obs")
+
 sink()
-
-
-
-
-
-
-
-
 
 
 

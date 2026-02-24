@@ -23,3 +23,19 @@ Kruskal-Wallis chi-squared = 2.1887, df = 1, p-value = 0.139
 data:  shoulder_avg by group_arm2
 Kruskal-Wallis chi-squared = 0.35795, df = 1, p-value = 0.5496
 
+#spearman, vbt pain and knee
+[1] -0.2509087
+#spearman, vbt pain and shoulder
+[1] -0.192238
+#pearson, vbt pain and knee
+[1] -0.1411209
+#pearson, vbt pain and shoulder
+[1] -0.1221928
+#spearman, mh23 and knee
+[1] -0.1390846
+#spearman, mh23 and shoulder
+[1] -0.1911912
+#pearson, mh23 and knee
+[1] -0.1368874
+#pearson, mh23 and shoulder
+[1] -0.1937053
